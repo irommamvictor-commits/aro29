@@ -1,1 +1,348 @@
+<!doctype html>
+<html lang="pt-BR" class="h-full">
+ <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MegaBikes - Pesquisa de Satisfação</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <script src="https://cdn.jsdelivr.net/npm/lucide@0.263.0/dist/umd/lucide.min.js"></script>
+  <script src="/_sdk/element_sdk.js"></script>
+  <script src="/_sdk/data_sdk.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Outfit', sans-serif; }
+    .radio-option input:checked + label {
+      background: linear-gradient(135deg, #166534, #14532d);
+      border-color: #22c55e;
+      color: #fff;
+      box-shadow: 0 0 16px rgba(34, 197, 94, 0.25);
+    }
+    .radio-option label:hover {
+      border-color: #22c55e80;
+      background: #0a0a0a;
+    }
+    .progress-fill {
+      transition: width 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.5s ease forwards; }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(34, 197, 94, 0.15); }
+      50% { box-shadow: 0 0 35px rgba(34, 197, 94, 0.3); }
+    }
+    .glow { animation: pulse-glow 3s ease-in-out infinite; }
+    .toast-enter { animation: fadeUp 0.4s ease forwards; }
+    .star-rating label { cursor: pointer; transition: all 0.15s; }
+    .star-rating label:hover, .star-rating label:hover ~ label { color: #22c55e; }
+    html, body { height: 100%; margin: 0; }
+  </style>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            mega: { dark: '#0a0a0a', card: '#141414', green: '#166534', accent: '#22c55e', border: '#1e1e1e' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>body { box-sizing: border-box; }</style>
+ </head>
+ <body class="h-full bg-mega-dark text-gray-200 overflow-auto">
+  <div id="app-wrapper" class="w-full min-h-full flex flex-col"><!-- Header -->
+   <header class="w-full py-6 px-4 text-center border-b border-mega-border relative overflow-hidden">
+    <div class="absolute inset-0 bg-gradient-to-b from-green-950/30 to-transparent"></div>
+    <div class="relative z-10">
+     <div class="flex items-center justify-center gap-3 mb-2">
+      <div class="w-10 h-10 rounded-full bg-mega-green flex items-center justify-center glow"><i data-lucide="bike" class="w-5 h-5 text-green-300"></i>
+      </div>
+      <h1 id="el-title" class="text-3xl font-800 tracking-tight text-white">MegaBikes</h1>
+     </div>
+     <p id="el-subtitle" class="text-green-400/80 font-300 text-sm tracking-widest uppercase">Pesquisa de Satisfação</p>
+    </div>
+   </header><!-- Progress -->
+   <div class="w-full px-4 py-3 sticky top-0 z-20 bg-mega-dark/90 backdrop-blur border-b border-mega-border" id="progress-section" style="display:none;">
+    <div class="max-w-2xl mx-auto flex items-center gap-3"><span id="progress-label" class="text-xs text-green-400 font-500 whitespace-nowrap">0 / 10</span>
+     <div class="flex-1 h-2 bg-mega-card rounded-full overflow-hidden">
+      <div id="progress-bar" class="progress-fill h-full bg-gradient-to-r from-green-700 to-green-500 rounded-full" style="width:0%"></div>
+     </div>
+    </div>
+   </div><!-- Main Content -->
+   <main class="flex-1 w-full px-4 py-8">
+    <div class="max-w-2xl mx-auto"><!-- Survey Form -->
+     <form id="survey-form" class="space-y-8" onsubmit="return false;"><!-- Step 1: Customer Info -->
+      <div id="step-info" class="p-6 rounded-2xl bg-mega-card border border-mega-border fade-up">
+       <h2 class="text-lg font-600 text-white mb-5 flex items-center gap-2"><i data-lucide="user" class="w-5 h-5 text-green-400"></i> Seus Dados</h2>
+       <div class="space-y-4">
+        <div><label for="customer-name" class="block text-sm font-500 text-gray-300 mb-2">Nome Completo *</label> <input type="text" id="customer-name" placeholder="Digite seu nome" class="w-full bg-mega-dark border border-mega-border rounded-xl px-4 py-2.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-green-500/50 transition-all">
+        </div>
+        <div><label for="customer-email" class="block text-sm font-500 text-gray-300 mb-2">E-mail *</label> <input type="email" id="customer-email" placeholder="seu.email@exemplo.com" class="w-full bg-mega-dark border border-mega-border rounded-xl px-4 py-2.5 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-green-500/50 transition-all">
+        </div>
+       </div><button type="button" onclick="goToQuestions()" class="mt-6 w-full py-2.5 bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-600 rounded-xl transition-all shadow-lg shadow-green-900/30 flex items-center justify-center gap-2"> <span>Continuar</span> <i data-lucide="arrow-right" class="w-4 h-4"></i> </button>
+      </div><!-- Step 2: Questions -->
+      <div id="step-questions" style="display:none;">
+       <div id="questions-container"></div>
+      </div><!-- Feedback Section -->
+      <div id="feedback-section" class="mt-10 p-6 rounded-2xl bg-mega-card border border-mega-border fade-up" style="display:none;">
+       <h3 class="text-lg font-600 text-white mb-4 flex items-center gap-2"><i data-lucide="message-square" class="w-5 h-5 text-green-400"></i> Deixe seu Feedback</h3>
+       <div class="flex gap-2 mb-4 flex-wrap"><button type="button" onclick="selectFeedbackType('reclamacao')" id="btn-reclamacao" class="feedback-type-btn px-4 py-2 rounded-full text-sm border border-mega-border bg-mega-dark text-gray-400 transition-all">🔴 Reclamação</button> <button type="button" onclick="selectFeedbackType('sugestao')" id="btn-sugestao" class="feedback-type-btn px-4 py-2 rounded-full text-sm border border-mega-border bg-mega-dark text-gray-400 transition-all">🟡 Sugestão</button> <button type="button" onclick="selectFeedbackType('elogio')" id="btn-elogio" class="feedback-type-btn px-4 py-2 rounded-full text-sm border border-mega-border bg-mega-dark text-gray-400 transition-all">🟢 Elogio</button>
+       </div><textarea id="feedback-text" rows="4" placeholder="Escreva aqui..." class="w-full bg-mega-dark border border-mega-border rounded-xl p-4 text-gray-200 placeholder-gray-600 focus:outline-none focus:border-green-500/50 resize-none"></textarea>
+      </div><!-- Star Rating Section -->
+      <div id="rating-section" class="mt-10 p-6 rounded-2xl bg-mega-card border border-mega-border fade-up" style="display:none;">
+       <h3 class="text-lg font-600 text-white mb-4 flex items-center gap-2"><i data-lucide="star" class="w-5 h-5 text-green-400"></i> Avaliação Geral</h3>
+       <div class="flex justify-center gap-4 star-rating"><input type="radio" name="rating" id="star1" value="1" class="hidden" onchange="onRating(1)"> <label for="star1" class="text-4xl text-gray-500 hover:text-yellow-400 transition-colors cursor-pointer">★</label> <input type="radio" name="rating" id="star2" value="2" class="hidden" onchange="onRating(2)"> <label for="star2" class="text-4xl text-gray-500 hover:text-yellow-400 transition-colors cursor-pointer">★</label> <input type="radio" name="rating" id="star3" value="3" class="hidden" onchange="onRating(3)"> <label for="star3" class="text-4xl text-gray-500 hover:text-yellow-400 transition-colors cursor-pointer">★</label> <input type="radio" name="rating" id="star4" value="4" class="hidden" onchange="onRating(4)"> <label for="star4" class="text-4xl text-gray-500 hover:text-yellow-400 transition-colors cursor-pointer">★</label> <input type="radio" name="rating" id="star5" value="5" class="hidden" onchange="onRating(5)"> <label for="star5" class="text-4xl text-gray-500 hover:text-yellow-400 transition-colors cursor-pointer">★</label>
+       </div>
+       <p id="rating-text" class="text-center text-green-400 text-sm mt-4 font-500">Selecione uma avaliação</p>
+      </div><!-- Submit -->
+      <div id="submit-section" class="text-center pt-4" style="display:none;"><button type="button" id="submit-btn" onclick="submitSurvey()" class="inline-flex items-center gap-2 px-8 py-3 bg-gradient-to-r from-green-700 to-green-600 hover:from-green-600 hover:to-green-500 text-white font-600 rounded-xl transition-all shadow-lg shadow-green-900/30"> <i data-lucide="send" class="w-4 h-4"></i> <span id="el-submit-text">Enviar Pesquisa</span> </button>
+       <div id="loading-indicator" class="hidden items-center justify-center gap-2 py-3">
+        <div class="w-5 h-5 border-2 border-green-500 border-t-transparent rounded-full animate-spin"></div><span class="text-green-400 text-sm">Enviando...</span>
+       </div>
+      </div>
+     </form><!-- Success -->
+     <div id="success-screen" class="hidden text-center py-20 fade-up">
+      <div class="w-20 h-20 mx-auto mb-6 rounded-full bg-green-900/40 flex items-center justify-center glow"><i data-lucide="check-circle" class="w-10 h-10 text-green-400"></i>
+      </div>
+      <h2 class="text-2xl font-700 text-white mb-2">Obrigado!</h2>
+      <p class="text-gray-400 mb-8">Sua opinião é muito importante para a MegaBikes.</p><button onclick="resetSurvey()" class="px-6 py-2 border border-green-700 text-green-400 rounded-xl hover:bg-green-900/30 transition-all text-sm">Nova Pesquisa</button>
+     </div>
+    </div>
+   </main><!-- Toast -->
+   <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden">
+    <div class="px-5 py-3 rounded-xl bg-red-900/90 border border-red-700 text-red-200 text-sm toast-enter flex items-center gap-2"><i data-lucide="alert-circle" class="w-4 h-4"></i> <span id="toast-msg"></span>
+    </div>
+   </div>
+  </div>
+  <script>
+const questions = [
+  { id: 'q1', text: 'Como você avalia a qualidade geral do produto MegaBikes?', options: ['Excelente', 'Bom', 'Satisfatório', 'Precisa melhorar'] },
+  { id: 'q2', text: 'O produto atendeu às suas expectativas?', options: ['Superou', 'Atendeu perfeitamente', 'Atendeu bem', 'Não atendeu'] },
+  { id: 'q3', text: 'Como você avalia o conforto do produto?', options: ['Muito confortável', 'Confortável', 'Razoável', 'Desconfortável'] },
+  { id: 'q4', text: 'Qual é sua opinião sobre a durabilidade do produto?', options: ['Muito durável', 'Durável', 'Normal', 'Frágil'] },
+  { id: 'q5', text: 'Como você avalia o custo-benefício do produto?', options: ['Excelente valor', 'Bom valor', 'Preço justo', 'Caro demais'] },
+  { id: 'q6', text: 'O design e acabamento do produto o agradou?', options: ['Muito satisfeito', 'Satisfeito', 'Indiferente', 'Insatisfeito'] },
+  { id: 'q7', text: 'Como avalia a facilidade de uso do produto?', options: ['Muito fácil', 'Fácil', 'Moderado', 'Difícil'] },
+  { id: 'q8', text: 'Você ficou satisfeito com o atendimento na compra?', options: ['Muito satisfeito', 'Satisfeito', 'Neutro', 'Insatisfeito'] },
+  { id: 'q9', text: 'Recomendaria este produto a um amigo?', options: ['Com certeza', 'Provavelmente sim', 'Talvez', 'Não recomendaria'] },
+  { id: 'q10', text: 'Qual é sua satisfação geral com a compra na MegaBikes?', options: ['Muito satisfeito', 'Satisfeito', 'Pouco satisfeito', 'Insatisfeito'] }
+];
 
+let answers = {};
+let feedbackType = '';
+let starRating = 0;
+let currentData = [];
+let isQuestionsStep = false;
+
+// Build questions
+const container = document.getElementById('questions-container');
+questions.forEach((q, i) => {
+  const div = document.createElement('div');
+  div.className = 'p-6 rounded-2xl bg-mega-card border border-mega-border fade-up';
+  div.style.animationDelay = `${i * 0.05}s`;
+  div.innerHTML = `
+    <p class="text-sm text-green-400/70 font-500 mb-1">Pergunta ${i + 1} de 10</p>
+    <h3 class="text-base font-600 text-white mb-4">${q.text}</h3>
+    <div class="grid gap-2">
+      ${q.options.map((opt, j) => `
+        <div class="radio-option">
+          <input type="radio" name="${q.id}" id="${q.id}_${j}" value="${opt}" class="hidden" onchange="onAnswer('${q.id}','${opt}')">
+          <label for="${q.id}_${j}" class="block px-4 py-2.5 rounded-xl border border-mega-border text-sm text-gray-400 cursor-pointer transition-all">${opt}</label>
+        </div>
+      `).join('')}
+    </div>
+  `;
+  container.appendChild(div);
+});
+
+function goToQuestions() {
+  const name = document.getElementById('customer-name').value.trim();
+  const email = document.getElementById('customer-email').value.trim();
+  
+  if (!name) { showToast('Por favor, digite seu nome.'); return; }
+  if (!email) { showToast('Por favor, digite seu e-mail.'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('E-mail inválido.'); return; }
+  
+  isQuestionsStep = true;
+  document.getElementById('step-info').style.display = 'none';
+  document.getElementById('step-questions').style.display = 'block';
+  document.getElementById('progress-section').style.display = 'block';
+}
+
+function onAnswer(qId, val) {
+  answers[qId] = val;
+  updateProgress();
+}
+
+function updateProgress() {
+  const count = Object.keys(answers).length;
+  document.getElementById('progress-label').textContent = `${count} / 10`;
+  document.getElementById('progress-bar').style.width = `${count * 10}%`;
+  if (count >= 10) {
+    document.getElementById('feedback-section').style.display = 'block';
+    document.getElementById('rating-section').style.display = 'block';
+    document.getElementById('submit-section').style.display = 'block';
+  }
+}
+
+function selectFeedbackType(type) {
+  feedbackType = type;
+  document.querySelectorAll('.feedback-type-btn').forEach(b => {
+    b.classList.remove('border-green-500', 'text-green-400', 'bg-green-900/20');
+    b.classList.add('border-mega-border', 'text-gray-400', 'bg-mega-dark');
+  });
+  const btn = document.getElementById('btn-' + type);
+  btn.classList.remove('border-mega-border', 'text-gray-400', 'bg-mega-dark');
+  btn.classList.add('border-green-500', 'text-green-400', 'bg-green-900/20');
+}
+
+function onRating(rating) {
+  starRating = rating;
+  const ratingLabels = ['Muito insatisfeito', 'Insatisfeito', 'Neutro', 'Satisfeito', 'Muito satisfeito'];
+  document.getElementById('rating-text').textContent = ratingLabels[rating - 1];
+  
+  for (let i = 1; i <= 5; i++) {
+    const label = document.querySelector(`label[for="star${i}"]`);
+    if (i <= rating) {
+      label.classList.remove('text-gray-500');
+      label.classList.add('text-yellow-400');
+    } else {
+      label.classList.remove('text-yellow-400');
+      label.classList.add('text-gray-500');
+    }
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  document.getElementById('toast-msg').textContent = msg;
+  t.classList.remove('hidden');
+  setTimeout(() => t.classList.add('hidden'), 3500);
+}
+
+async function submitSurvey() {
+  if (Object.keys(answers).length < 10) { showToast('Responda todas as 10 perguntas.'); return; }
+  if (currentData.length >= 999) { showToast('Limite de respostas atingido.'); return; }
+
+  const btn = document.getElementById('submit-btn');
+  const loader = document.getElementById('loading-indicator');
+  btn.classList.add('hidden');
+  loader.classList.remove('hidden');
+  loader.classList.add('flex');
+
+  const record = {
+    customer_name: document.getElementById('customer-name').value.trim(),
+    customer_email: document.getElementById('customer-email').value.trim(),
+    ...answers,
+    feedback_type: feedbackType || '',
+    feedback_text: document.getElementById('feedback-text').value.trim(),
+    star_rating: starRating.toString(),
+    submitted_at: new Date().toISOString()
+  };
+
+  const result = await window.dataSdk.create(record);
+  btn.classList.remove('hidden');
+  loader.classList.remove('flex');
+  loader.classList.add('hidden');
+
+  if (result.isOk) {
+    document.getElementById('survey-form').classList.add('hidden');
+    document.getElementById('progress-section').classList.add('hidden');
+    document.getElementById('success-screen').classList.remove('hidden');
+  } else {
+    showToast('Erro ao enviar. Tente novamente.');
+  }
+}
+
+function resetSurvey() {
+  answers = {};
+  feedbackType = '';
+  starRating = 0;
+  isQuestionsStep = false;
+  document.getElementById('customer-name').value = '';
+  document.getElementById('customer-email').value = '';
+  document.getElementById('feedback-text').value = '';
+  document.querySelectorAll('input[type=radio]').forEach(r => r.checked = false);
+  document.querySelectorAll('.feedback-type-btn').forEach(b => {
+    b.classList.remove('border-green-500', 'text-green-400', 'bg-green-900/20');
+    b.classList.add('border-mega-border', 'text-gray-400', 'bg-mega-dark');
+  });
+  document.querySelectorAll('label[for^="star"]').forEach(l => {
+    l.classList.remove('text-yellow-400');
+    l.classList.add('text-gray-500');
+  });
+  document.getElementById('rating-text').textContent = 'Selecione uma avaliação';
+  document.getElementById('step-info').style.display = 'block';
+  document.getElementById('step-questions').style.display = 'none';
+  document.getElementById('feedback-section').style.display = 'none';
+  document.getElementById('rating-section').style.display = 'none';
+  document.getElementById('submit-section').style.display = 'none';
+  document.getElementById('progress-section').style.display = 'none';
+  document.getElementById('survey-form').classList.remove('hidden');
+  document.getElementById('success-screen').classList.add('hidden');
+}
+
+const dataHandler = { onDataChanged(data) { currentData = data; } };
+window.dataSdk.init(dataHandler);
+
+const defaultConfig = {
+  app_title: 'MegaBikes',
+  subtitle_text: 'Pesquisa de Satisfação',
+  submit_button_text: 'Enviar Pesquisa',
+  background_color: '#0a0a0a',
+  surface_color: '#141414',
+  text_color: '#e5e7eb',
+  accent_color: '#166534',
+  highlight_color: '#22c55e',
+  font_family: 'Outfit',
+  font_size: 16
+};
+
+function applyConfig(config) {
+  const c = { ...defaultConfig, ...config };
+  document.getElementById('el-title').textContent = c.app_title;
+  document.getElementById('el-subtitle').textContent = c.subtitle_text;
+  document.getElementById('el-submit-text').textContent = c.submit_button_text;
+
+  const font = `${c.font_family}, Outfit, sans-serif`;
+  document.body.style.fontFamily = font;
+
+  document.body.style.backgroundColor = c.background_color;
+  document.body.style.color = c.text_color;
+
+  document.querySelectorAll('.bg-mega-card').forEach(el => el.style.backgroundColor = c.surface_color);
+
+  const base = c.font_size;
+  document.getElementById('el-title').style.fontSize = `${base * 1.9}px`;
+  document.getElementById('el-subtitle').style.fontSize = `${base * 0.85}px`;
+}
+
+window.elementSdk.init({
+  defaultConfig,
+  onConfigChange: async (config) => applyConfig(config),
+  mapToCapabilities: (config) => ({
+    recolorables: [
+      { get: () => config.background_color || defaultConfig.background_color, set: (v) => { config.background_color = v; window.elementSdk.setConfig({ background_color: v }); } },
+      { get: () => config.surface_color || defaultConfig.surface_color, set: (v) => { config.surface_color = v; window.elementSdk.setConfig({ surface_color: v }); } },
+      { get: () => config.text_color || defaultConfig.text_color, set: (v) => { config.text_color = v; window.elementSdk.setConfig({ text_color: v }); } },
+      { get: () => config.accent_color || defaultConfig.accent_color, set: (v) => { config.accent_color = v; window.elementSdk.setConfig({ accent_color: v }); } },
+      { get: () => config.highlight_color || defaultConfig.highlight_color, set: (v) => { config.highlight_color = v; window.elementSdk.setConfig({ highlight_color: v }); } }
+    ],
+    borderables: [],
+    fontEditable: { get: () => config.font_family || defaultConfig.font_family, set: (v) => { config.font_family = v; window.elementSdk.setConfig({ font_family: v }); } },
+    fontSizeable: { get: () => config.font_size || defaultConfig.font_size, set: (v) => { config.font_size = v; window.elementSdk.setConfig({ font_size: v }); } }
+  }),
+  mapToEditPanelValues: (config) => new Map([
+    ['app_title', config.app_title || defaultConfig.app_title],
+    ['subtitle_text', config.subtitle_text || defaultConfig.subtitle_text],
+    ['submit_button_text', config.submit_button_text || defaultConfig.submit_button_text]
+  ])
+});
+
+lucide.createIcons();
+  </script>
+ <script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9f0729af4207e2a9',t:'MTc3Njg4NzQ4Mi4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
